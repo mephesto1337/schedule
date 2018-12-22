@@ -11,20 +11,29 @@
 #include <unistd.h>
 
 #include "check.h"
+#include "log.h"
 #include "schedule.h"
 
 #define CHK_ASYNC(expr, is_error)                                                                  \
     do {                                                                                           \
         if ((expr)is_error) {                                                                      \
-            if (errno == EWOULDBLOCK || errno == EINPROGRESS) {                                    \
-                printf("Schedule (%s)\n", #expr);                                                  \
-                schedule();                                                                        \
-            } else {                                                                               \
-                perror(#expr);                                                                     \
-                exit(EXIT_FAILURE);                                                                \
+            switch (errno) {                                                                       \
+                case EWOULDBLOCK:                                                                  \
+                    debug("[WOULDBLOCK] Schedule :%s ", #expr);                                    \
+                    schedule();                                                                    \
+                    break;                                                                         \
+                case EINPROGRESS:                                                                  \
+                    debug("[INPROGRESS] Schedule :%s ", #expr);                                    \
+                    schedule();                                                                    \
+                    break;                                                                         \
+                default:                                                                           \
+                    perror(#expr);                                                                 \
+                    exit(EXIT_FAILURE);                                                            \
             }                                                                                      \
+        } else {                                                                                   \
+            break;                                                                                 \
         }                                                                                          \
-    } while (0)
+    } while (1)
 #define CHK_ASYNC_NULL(expr) CHK_ASYNC(expr, == NULL)
 #define CHK_ASYNC_NEG(expr) CHK_ASYNC(expr, < 0)
 
@@ -35,10 +44,9 @@ struct print_async_arg_s {
 
 void print_async(void *ptr) {
     struct print_async_arg_s *arg = (struct print_async_arg_s *)ptr;
-    printf("print_async(host=\"%s\", port=%d)\n", arg->host, arg->port);
     int sock = -1;
     ssize_t read_size;
-    char buf[BUFSIZ];
+    char buf[512];
     struct sockaddr_in ep;
 
     memset(&ep, 0, sizeof(struct sockaddr_in));
@@ -56,26 +64,20 @@ void print_async(void *ptr) {
     } while (read_size > 0);
     shutdown(sock, SHUT_RDWR);
     close(sock);
-
-    task_done();
 }
 
 int main(int argc, char *const argv[]) {
     struct print_async_arg_s *args = NULL;
-    struct new_task_s tasks[argc - 1];
 
     for (int i = 1; i < argc; i++) {
         args = malloc(sizeof(struct print_async_arg_s));
         args->host = argv[i];
         args->port = 1337;
-        tasks[i - 1].func = print_async;
-        tasks[i - 1].args = args;
-        schedule_task(0UL, &tasks[i - 1]);
+        schedule_task(print_async, args, argv[i]);
     }
     start_runtime();
 
-    printf("Will wait...\n");
-    sleep(30);
+    printf("All done...\n");
 
     return EXIT_SUCCESS;
 }
