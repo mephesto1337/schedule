@@ -65,7 +65,10 @@ bool vector_pop(vector_t *v, void **element) {
     if (v->len > 0) {
         *element = v->buffer[0];
         v->len--;
-        memmove(v->buffer, &v->buffer[1], v->len);
+        for ( size_t i = 0; i < v->len; i++ ) {
+            v->buffer[i] = v-> buffer[i + 1];
+        }
+        v->buffer[v->len] = NULL;
         return true;
     }
     return false;
