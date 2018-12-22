@@ -48,4 +48,4 @@ tests : $(OBJ)
 	done
 
 clean :
-	rm -f $(OBJ) $(BIN)
+	rm -f $(OBJ) $(BIN) $(TEST_OBJ) $(TEST_BIN)
