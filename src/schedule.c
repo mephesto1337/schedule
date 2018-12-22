@@ -68,5 +68,10 @@ void start_runtime(void) {
     while (vector_pop(coroutines, (void **)&current_task)) {
         debug("starting task %s", current_task->name);
         swapcontext(&uctx_main, &current_task->context);
+
+        // now current task is done, we can free it !
+        munmap(current_task->context.uc_stack.ss_sp, current_task->context.uc_stack.ss_size);
+        free(current_task);
+        current_task = NULL;
     }
 }
