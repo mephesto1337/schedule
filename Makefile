@@ -39,8 +39,8 @@ obj/%.o : src/%.c $(HDR)
 tests : $(OBJ)
 	@for test in $(wildcard tests/*.c); do \
 		obj=$${test%.c}.o ; \
-		echo $(CC) $(CPPFLAGS) $(CFLAGS) -o $$obj -c $$test ; \
-		$(CC) $(CPPFLAGS) $(CFLAGS) -o $$obj -c $$test ; \
+		echo $(CC) $(CPPFLAGS) -Isrc/ $(CFLAGS) -o $$obj -c $$test ; \
+		$(CC) $(CPPFLAGS) -Isrc/ $(CFLAGS) -o $$obj -c $$test ; \
 		echo $(LD) $(LDFLAGS) -o $${test%.c} $$obj $(OBJ) $(LIBS) ; \
 		$(LD) $(LDFLAGS) -o $${test%.c} $$obj $(OBJ) $(LIBS) ; \
 	done
