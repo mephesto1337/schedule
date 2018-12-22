@@ -24,7 +24,12 @@ class RequestHandler(socketserver.BaseRequestHandler):
         for _ in range(5):
             n = random.randint(1, 1024)
             self.request.send(bytes(n))
-            time.sleep(random.random())
+            sleep_duration = random.random() / 2
+            logger.info(
+                'Will sleep for %.02f seconds for %s:%d',
+                sleep_duration, *self.client_address
+            )
+            time.sleep(sleep_duration)
 
 
 class Server(socketserver.ThreadingTCPServer):
