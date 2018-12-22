@@ -6,6 +6,8 @@ LD = gcc
 LDFLAGS =
 LIBS = 
 
+_ = $(shell mkdir -p obj)
+
 DEBUG ?= undefined
 
 ifneq ($(DEBUG), undefined)
