@@ -82,24 +82,23 @@ struct task *get_first_ready_task(void) {
     }
 
     // No task was ready, let's poll !
-    debug("Will poll, no task is ready");
-    CHK_NEG(ready_fds = poll(fds, nfds, 500));
-    for (size_t i = 0; i < nfds; i++) {
-        vector_get(coroutines, i, (void **)&t);
+    while (ready_fds == 0) {
+        debug("Will poll, no task is ready");
+        CHK_NEG(ready_fds = poll(fds, nfds, 500));
+        for (size_t i = 0; i < nfds; i++) {
+            vector_get(coroutines, i, (void **)&t);
 
-        if (fds[i].revents & fds[i].events) {
-            vector_remove(coroutines, i, NULL);
-            t->status = READY;
-            debug("Task %lu (%s) is READY", t->id, t->name);
-            return t;
+            if (fds[i].revents & fds[i].events) {
+                vector_remove(coroutines, i, NULL);
+                t->status = READY;
+                debug("Task %lu (%s) is READY", t->id, t->name);
+                return t;
+            }
         }
     }
 
-    // No task is ready, still return the first one
-    vector_pop(coroutines, (void **)&t);
-    debug("Task %lu (%s) is not *really* READY, but YOLO !", t->id, t->name);
-    t->status = READY;
-    return t;
+    unreachable();
+    return NULL;
 }
 
 void start_task(struct task *new_task, struct task *old_task) {
