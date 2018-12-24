@@ -3,6 +3,7 @@
 import argparse
 import logging
 import random
+import socket
 import socketserver
 import sys
 import time
@@ -30,6 +31,8 @@ class RequestHandler(socketserver.BaseRequestHandler):
                 sleep_duration, *self.client_address
             )
             time.sleep(sleep_duration)
+        logger.info('Shutdown %s:%d', *self.client_address)
+        self.request.shutdown(socket.SHUT_RDWR)
 
 
 class Server(socketserver.ThreadingTCPServer):
