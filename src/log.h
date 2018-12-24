@@ -5,7 +5,7 @@
 
 #if defined(DEBUG)
 #include <stdio.h>
-#define debug(msg, ...) fprintf(stderr, "[DEBUG] [%s:%d] " msg "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define debug(msg, ...) fprintf(stderr, "[DEBUG] [%15s:%3d] " msg "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define debug(msg, ...)
 #endif
