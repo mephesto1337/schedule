@@ -45,9 +45,11 @@ bool vector_set(vector_t *v, size_t idx, void *element) {
     return false;
 }
 
-bool vector_get(const vector_t *v, size_t idx, void **ret) {
+bool vector_get(const vector_t *v, size_t idx, void **element) {
     if (idx < v->len) {
-        *ret = v->buffer[idx];
+        if ( element != NULL ) {
+            *element = v->buffer[idx];
+        }
         return true;
     }
     return false;
@@ -62,15 +64,21 @@ void vector_push(vector_t *v, void *element) {
 }
 
 bool vector_pop(vector_t *v, void **element) {
-    if (v->len > 0) {
-        *element = v->buffer[0];
-        v->len--;
-        for ( size_t i = 0; i < v->len; i++ ) {
-            v->buffer[i] = v-> buffer[i + 1];
+    return vector_remove(v, 0, element);
+}
+
+bool vector_remove(vector_t *v, size_t idx, void **element) {
+    if ( idx < v->len ) {
+        if ( element != NULL ) {
+            *element = v->buffer[idx];
         }
-        v->buffer[v->len] = NULL;
+        v->len--;
+        for ( size_t i = idx; i < v->len; i++) {
+            v->buffer[i] = v->buffer[i + 1];
+        }
         return true;
     }
+
     return false;
 }
 

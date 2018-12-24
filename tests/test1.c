@@ -42,7 +42,7 @@ struct print_async_arg_s {
     int port;
 };
 
-void print_async(void *ptr) {
+void* print_async(void *ptr) {
     struct print_async_arg_s *arg = (struct print_async_arg_s *)ptr;
     int sock = -1;
     ssize_t read_size;
@@ -64,20 +64,32 @@ void print_async(void *ptr) {
     } while (read_size > 0);
     shutdown(sock, SHUT_RDWR);
     close(sock);
+
+    return (void *)arg->host;
 }
 
 int main(int argc, char *const argv[]) {
-    struct print_async_arg_s *args = NULL;
+    struct print_async_arg_s args[argc - 1];
+    task_id_t ids[argc - 1];
+    const char *ret = NULL;
 
     for (int i = 1; i < argc; i++) {
-        args = malloc(sizeof(struct print_async_arg_s));
-        args->host = argv[i];
-        args->port = 1337;
-        schedule_task(print_async, args, argv[i]);
+        args[i - 1].host = argv[i];
+        args[i - 1].port = 1337;
+        ids[i - 1] = schedule_task(print_async, &args[i- 1], argv[i]);
     }
     start_runtime();
 
+
     printf("All done...\n");
+    for (int i = 1; i < argc; i++) {
+        if (get_return_value(ids[i - 1], (void **)&ret)) {
+            printf("Task %lu returned \"%s\"\n", ids[i - 1], ret);
+        } else {
+            printf("get_return_value(%lu) failed\n", ids[i - 1]);
+        }
+
+    }
 
     return EXIT_SUCCESS;
 }

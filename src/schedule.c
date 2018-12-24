@@ -1,4 +1,4 @@
-#include <setjmp.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,18 +18,42 @@
         exit(EXIT_FAILURE);                                                                        \
     } while (0)
 
-vector_t *coroutines = NULL;
 struct task {
     ucontext_t context;
     char *name;
+    task_id_t id;
 };
+
+struct task_return {
+    task_id_t id;
+    void *ret;
+};
+
+vector_t *coroutines = NULL;
+vector_t *return_values = NULL;
+task_id_t task_id_counter = 0UL;
 struct task *current_task = NULL;
 ucontext_t uctx_main;
 size_t new_context_count = 0UL;
 
-void __attribute__((constructor)) __init_scheduler__(void) { vector_init(&coroutines); }
+void __attribute__((constructor)) __init_scheduler__(void) {
+    vector_init(&coroutines);
+    vector_init(&return_values);
+}
 
-void __attribute__((destructor)) __exit_scheduler__(void) { vector_free(coroutines); }
+void __attribute__((destructor)) __exit_scheduler__(void) {
+    vector_free(coroutines);
+    vector_free(return_values);
+}
+
+void start_task_and_save_ret(task_id_t id, task_func_t func, void *arg) {
+    struct task_return *ret = NULL;
+
+    CHK_NULL(ret = malloc(sizeof(struct task_return)));
+    ret->ret = func(arg);
+    ret->id = id;
+    vector_push(return_values, (void *)ret);
+}
 
 void schedule(void) {
     struct task *task = current_task;
@@ -41,7 +65,7 @@ void schedule(void) {
     swapcontext(&task->context, &current_task->context);
 }
 
-void schedule_task(task_func_t entry, void *arg, const char *name) {
+task_id_t schedule_task(task_func_t entry, void *arg, const char *name) {
     struct task *task = NULL;
 
     CHK_NULL(task = malloc(sizeof(struct task)));
@@ -52,21 +76,38 @@ void schedule_task(task_func_t entry, void *arg, const char *name) {
     } else {
         asprintf(&task->name, "task-%lu", ++new_context_count);
     }
+    task->id = task_id_counter++;
     task->context.uc_stack.ss_size = STACK_SIZE;
     CHK_NULL(task->context.uc_stack.ss_sp =
                  mmap(NULL, task->context.uc_stack.ss_size, PROT_READ | PROT_WRITE,
                       MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
     task->context.uc_link = &uctx_main;
-    makecontext(&task->context, (void (*)(void))entry, 1, arg);
+    makecontext(&task->context, (void (*)(void))start_task_and_save_ret, 3, task->id, entry, arg);
     vector_push(coroutines, task);
-    debug("New task created : %s (func=%p, arg=%p, stack=%p)", task->name, entry, arg, task->context.uc_stack.ss_sp);
+    debug("New task created : %s (func=%p, arg=%p, stack=%p)", task->name, entry, arg,
+          task->context.uc_stack.ss_sp);
 
-    return;
+    return task->id;
+}
+
+bool get_return_value(task_id_t id, void **ret) {
+    struct task_return *tret = NULL;
+
+    for ( size_t idx = 0; idx < vector_len(return_values); idx++) {
+        vector_get(return_values, idx, (void **)&tret);
+        if ( tret->id == id ) {
+            *ret = tret->ret;
+            vector_remove(return_values, idx, NULL);
+            free(tret);
+            return true;
+        }
+    }
+    return false;
 }
 
 void start_runtime(void) {
     while (vector_pop(coroutines, (void **)&current_task)) {
-        debug("starting task %s", current_task->name);
+        debug("starting task %lu (%s)", current_task->id, current_task->name);
         swapcontext(&uctx_main, &current_task->context);
 
         // now current task is done, we can free it !
