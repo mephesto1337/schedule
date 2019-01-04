@@ -43,8 +43,8 @@ tests : $(OBJ)
 		obj=$${test%.c}.o ; \
 		echo $(CC) $(CPPFLAGS) -Isrc/ $(CFLAGS) -o $$obj -c $$test ; \
 		$(CC) $(CPPFLAGS) -Isrc/ $(CFLAGS) -o $$obj -c $$test ; \
-		echo $(LD) $(LDFLAGS) -o $${test%.c} $$obj $(OBJ) $(LIBS) ; \
-		$(LD) $(LDFLAGS) -o $${test%.c} $$obj $(OBJ) $(LIBS) ; \
+		echo $(LD) $(LDFLAGS) -o $${test%.c} $$obj $(OBJ) $(LIBS) -lpthread ; \
+		$(LD) $(LDFLAGS) -o $${test%.c} $$obj $(OBJ) $(LIBS) -lpthread ; \
 	done
 
 clean :

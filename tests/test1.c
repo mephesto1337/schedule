@@ -52,6 +52,11 @@ void *print_async(void *ptr) {
     ssize_t read_size;
     char buf[512];
     struct sockaddr_in ep;
+    char local_ip[INET_ADDRSTRLEN];
+    int local_port;
+    struct sockaddr_in local_addr;
+    socklen_t local_addr_len = sizeof(struct sockaddr_in);
+
 
     memset(&ep, 0, sizeof(struct sockaddr_in));
     ep.sin_addr.s_addr = inet_addr(arg->host);
@@ -61,11 +66,15 @@ void *print_async(void *ptr) {
     CHK_NEG(sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
     CHK_NEG(fcntl(sock, F_SETFL, O_NONBLOCK));
     CHK_ASYNC_NEG(sock, POLLIN, connect(sock, (const struct sockaddr *)&ep, sizeof(ep)));
+    getsockname(sock, (struct sockaddr *)&local_addr, &local_addr_len);
+    inet_ntop(AF_INET, (void *)&local_addr.sin_addr, local_ip, sizeof(local_ip));
+    local_port = (int)htons(local_addr.sin_port);
 
     do {
         CHK_ASYNC_NEG(sock, POLLIN, read_size = recv(sock, buf, sizeof(buf), 0));
         printf("Read %ld bytes from %s:%d\n", read_size, arg->host, arg->port);
     } while (read_size > 0);
+    printf("Closing connection %s:%d <-> %s:%d\n", local_ip, local_port, arg->host, arg->port);
     shutdown(sock, SHUT_RDWR);
     close(sock);
 
