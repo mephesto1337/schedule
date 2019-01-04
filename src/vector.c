@@ -14,7 +14,7 @@ struct vector_s {
 
 void vector_resize(vector_t *v) {
     v->size <<= 1;
-    if ((v->buffer = realloc(v->buffer, v->size)) == NULL) {
+    if ((v->buffer = realloc(v->buffer, sizeof(void *) * v->size)) == NULL) {
         exit(EXIT_FAILURE);
     }
 }
