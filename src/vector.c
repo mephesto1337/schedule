@@ -62,10 +62,9 @@ void vector_init(vector_t **pv) {
 
 void vector_free(vector_t *v) {
     if (v->buffer) {
-        memset(v->buffer, 0, v->size);
         free(v->buffer);
     }
-    memset(v, 0, sizeof(struct vector_s));
+    free(v);
 }
 
 bool vector_set(vector_t *v, size_t idx, void *element) {
@@ -142,6 +141,12 @@ bool vector_remove(vector_t *v, size_t idx, void **element) {
     return false;
 }
 
+void vector_apply(vector_t *v, vector_callback_t cb, void *user) {
+    for (size_t i = 0; i < v->len; i++) {
+        void *element = v->buffer[v->start + i];
+        cb(element, user);
+    }
+}
 size_t vector_len(const vector_t *v) { return v->len; }
 
 size_t vector_size(const vector_t *v) { return v->size; }

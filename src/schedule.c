@@ -40,6 +40,19 @@ struct task *current_task = NULL;
 ucontext_t uctx_main;
 size_t new_context_count = 0UL;
 
+void free_task_return_cb(void *ptr, void *user) {
+    (void)user;
+    free(ptr);
+}
+
+void free_task(struct task *t) {
+    if (t->name) {
+        free(t->name);
+    }
+    munmap(t->context.uc_stack.ss_sp, t->context.uc_stack.ss_size);
+    free(t);
+}
+
 void __attribute__((constructor)) __init_scheduler__(void) {
     vector_init(&coroutines);
     vector_init(&return_values);
@@ -47,6 +60,7 @@ void __attribute__((constructor)) __init_scheduler__(void) {
 
 void __attribute__((destructor)) __exit_scheduler__(void) {
     vector_free(coroutines);
+    vector_apply(return_values, free_task_return_cb, NULL);
     vector_free(return_values);
 }
 
@@ -172,8 +186,7 @@ void start_runtime(void) {
 
         // now current task is done, we can free it !
         debug("Removing task %lu (%s) from list", current_task->id, current_task->name);
-        munmap(current_task->context.uc_stack.ss_sp, current_task->context.uc_stack.ss_size);
-        free(current_task);
+        free_task(current_task);
         current_task = NULL;
     }
 }
