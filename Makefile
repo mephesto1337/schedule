@@ -1,10 +1,19 @@
 CC = gcc
-CPPFLAGS = -D_GNU_SOURCE
+CPPFLAGS = -D_GNU_SOURCE -Iinclude/
 CFLAGS = -W -Wall -Wextra -Werror -std=c99 -fPIC
 
 LD = gcc
 LDFLAGS =
 LIBS = 
+
+TEST_CPPFLAGS = $(CPPFLAGS) -Isrc/
+TEST_CFLAGS = $(CFLAGS)
+TEST_LDFLAGS = $(LDFLAGS) -L$(PWD) -Wl,-rpath=$(PWD)
+TEST_LIBS = $(LIBS) -lschedule -pthread
+
+TESTS_SRC=$(wildcard tests/*.c)
+TESTS_OBJ=$(TEST_SRC:tests/%.c=obj/test_%.o)
+TESTS=$(TEST_SRC:tests/%.c=tests/test_%)
 
 _ = $(shell mkdir -p obj)
 
@@ -26,26 +35,25 @@ TEST_SRC = $(wildcard tests/*.c)
 TEST_OBJ = $(TEST_SRC:tests/%.c=obj/%.o)
 TEST_BIN = $(TEST_SRC:%.c=%)
 
-.SECONDARY : $(OBJ)
+.SECONDARY: $(OBJ) $(TESTS_OBJ)
 
-.PHONY : all clean tests
+.PHONY: all clean tests
 
-all : $(BIN)
+all: $(BIN)
 
-$(BIN) : $(OBJ)
+tests: $(TESTS)
+
+$(BIN): $(OBJ)
 	$(LD) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 
-obj/%.o : src/%.c $(HDR)
+obj/%.o: src/%.c $(HDR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
 
-tests : $(OBJ)
-	@for test in $(wildcard tests/*.c); do \
-		obj=$${test%.c}.o ; \
-		echo $(CC) $(CPPFLAGS) -Isrc/ $(CFLAGS) -o $$obj -c $$test ; \
-		$(CC) $(CPPFLAGS) -Isrc/ $(CFLAGS) -o $$obj -c $$test ; \
-		echo $(LD) $(LDFLAGS) -o $${test%.c} $$obj $(OBJ) $(LIBS) -lpthread ; \
-		$(LD) $(LDFLAGS) -o $${test%.c} $$obj $(OBJ) $(LIBS) -lpthread ; \
-	done
+tests/test_%: obj/test_%.o $(BIN)
+	$(LD) $(TEST_LDFLAGS) -o $@ $< $(TEST_LIBS)
 
-clean :
-	rm -f $(OBJ) $(BIN) $(TEST_OBJ) $(TEST_BIN)
+obj/test_%.o: tests/%.c $(HDR)
+	$(CC) $(TEST_CPPFLAGS) $(TEST_CFLAGS) -o $@ -c $<
+
+clean:
+	rm -f $(OBJ) $(TESTS_OBJ) $(BIN) $(TESTS)
