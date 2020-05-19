@@ -4,7 +4,7 @@ CFLAGS = -W -Wall -Wextra -Werror -std=c99 -fPIC
 
 LD = gcc
 LDFLAGS =
-LIBS = 
+LIBS =
 
 TEST_CPPFLAGS = $(CPPFLAGS) -Isrc/
 TEST_CFLAGS = $(CFLAGS)
